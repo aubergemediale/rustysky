@@ -30,7 +30,7 @@ struct LoginRequest {
     password: String,
 }
 
-// todo: anyhow, log via trace
+// todo: anyhow, log via trace, crate derivemore, derive from, into
 // note: don't forget to look at problems (from clippy) and check rustfmt is working on save.
 
 #[tokio::main]
