@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use std::{env, process::exit};
 use env_logger::{Builder, Env};
 use log::LevelFilter;
 use log::{error, info};
+use serde::{Deserialize, Serialize};
 use std::io::Write;
+use std::{env, process::exit};
 
 struct BlueskyServer {
     username: String,
@@ -30,9 +30,11 @@ struct LoginRequest {
     password: String,
 }
 
+// todo: anyhow, log via trace
+// note: don't forget to look at problems (from clippy) and check rustfmt is working on save.
+
 #[tokio::main]
 async fn main() {
-
     configure_logging();
 
     let server = create_server().expect("Could not create server, exiting");
@@ -77,7 +79,6 @@ fn configure_logging() {
         })
         .init();
     // how can I add output to a file?
-
 }
 
 fn create_server() -> Option<BlueskyServer> {
@@ -88,7 +89,7 @@ fn create_server() -> Option<BlueskyServer> {
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-    if username.len() == 0 {
+    if username.is_empty() {
         println!("Could not find the BLUESKY_USERNAME environment variable or it was empty.");
         return None;
     }
@@ -97,7 +98,7 @@ fn create_server() -> Option<BlueskyServer> {
         .unwrap_or_default()
         .to_string_lossy()
         .to_string();
-    if password.len() == 0 {
+    if password.is_empty() {
         println!("Could not find the BLUESKY_PASSWORD environment variable or it was empty.");
         return None;
     }
@@ -106,11 +107,11 @@ fn create_server() -> Option<BlueskyServer> {
         "Using Bluesky credentials for {} with password from environment variable {}.",
         username, bpasswordkey
     );
-    return Some(BlueskyServer {
-        username: username,
-        password: password,
+    Some(BlueskyServer {
+        username,
+        password,
         hosturl: "https://bsky.social".to_string(),
-    });
+    })
 }
 
 impl BlueskyServer {
