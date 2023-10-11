@@ -1,5 +1,7 @@
 # rustysky
 
+![Rust Tests](https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME/workflows/Rust/badge.svg)
+
 rustysky is a Rust client library for the bluesky social network. Along with the library, this project also provides a CLI tool and examples to help users get started with the bluesky API.
 
 ## Table of Contents
@@ -68,9 +70,6 @@ To demonstrate the usage of `rustysky`, we've provided some examples:
    cargo run --example no_auth
    ```
 
-Of course! Here's the updated `Testing` section for your `README.md`:
-
-```markdown
 ## Testing
 
 ### Unit Tests
