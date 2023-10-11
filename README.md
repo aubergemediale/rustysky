@@ -68,12 +68,34 @@ To demonstrate the usage of `rustysky`, we've provided some examples:
    cargo run --example no_auth
    ```
 
+Of course! Here's the updated `Testing` section for your `README.md`:
+
+```markdown
 ## Testing
 
-To run both unit and integration tests:
+### Unit Tests
+
+Unit tests are co-located with the code they test. To run only the unit tests for the library:
+
+```
+cargo test --lib
+```
+
+### Integration Tests
+
+Integration tests are located in the `tests` directory. To run the integration tests:
+
+```
+cargo test --test bsky_agent_tests
+```
+
+### Running All Tests
+
+To run both unit and integration tests together:
 
 ```
 cargo test
+```
 ```
 
 ## License
