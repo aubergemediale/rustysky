@@ -1,6 +1,6 @@
 # rustysky
 
-![Rust Tests](https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME/workflows/Rust/badge.svg)
+![Rust Tests](https://github.com/aubergemediale/rustysky/workflows/Rust/badge.svg)
 
 rustysky is a Rust client library for the bluesky social network. Along with the library, this project also provides a CLI tool and examples to help users get started with the bluesky API.
 
