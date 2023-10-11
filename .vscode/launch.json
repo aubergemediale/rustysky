@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'blue_session'",
+            "name": "Debug executable 'rustysky_cli'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=blue_session",
-                    "--package=blue_session"
+                    "--bin=rustysky_cli",
+                    "--package=rustysky"
                 ],
                 "filter": {
-                    "name": "blue_session",
+                    "name": "rustysky_cli",
                     "kind": "bin"
                 }
             },
@@ -25,17 +25,147 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'blue_session'",
+            "name": "Debug unit tests in library 'rustysky'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=blue_session",
-                    "--package=blue_session"
+                    "--lib",
+                    "--package=rustysky"
                 ],
                 "filter": {
-                    "name": "blue_session",
+                    "name": "rustysky",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'rustysky_cli'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=rustysky_cli",
+                    "--package=rustysky"
+                ],
+                "filter": {
+                    "name": "rustysky_cli",
                     "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'rustysky'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=rustysky",
+                    "--package=rustysky"
+                ],
+                "filter": {
+                    "name": "rustysky",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'rustysky'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=rustysky",
+                    "--package=rustysky"
+                ],
+                "filter": {
+                    "name": "rustysky",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'auth'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=auth",
+                    "--package=rustysky"
+                ],
+                "filter": {
+                    "name": "auth",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'auth'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=auth",
+                    "--package=rustysky"
+                ],
+                "filter": {
+                    "name": "auth",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'no_auth'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=no_auth",
+                    "--package=rustysky"
+                ],
+                "filter": {
+                    "name": "no_auth",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'no_auth'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=no_auth",
+                    "--package=rustysky"
+                ],
+                "filter": {
+                    "name": "no_auth",
+                    "kind": "example"
                 }
             },
             "args": [],
