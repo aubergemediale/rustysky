@@ -1,16 +1,169 @@
+use agent::*;
+use anyhow::bail;
 use anyhow::Result;
+use env_logger::{Builder, Env};
+use log::info;
+use log::LevelFilter;
 use rustysky::agent;
-use rustysky::bsky_agent;
-use rustysky::client;
-use rustysky::moderation;
-use rustysky::richtext;
 use rustysky::types;
+use std::env;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
+use types::*;
 
-fn main() -> Result<()> {
-    println!("Welcome to Rustysky CLI!");
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    configure_logging(""); // pass a filename to log to a file, or "" for stdout
+    let config = get_default_configuration();
 
-    let module_name = bsky_agent::get_module_name()?;
-    println!("Using module: {}", module_name);
+    let create_session_request = credentials_from_env()?;
+    info!(
+        "Using Bluesky credentials for {} from BLUESKY_USERNAME, BLUESKY_PASSWORd",
+        create_session_request.identifier
+    );
 
+    let user: CreateSessionResponse;
+    let mut errcount = 0;
+    loop {
+        let loginresult = create_session(&create_session_request, &config).await;
+        match loginresult {
+            Ok(u) => {
+                info!("Login successful: {:#?}", u);
+                user = u;
+                break;
+            }
+            Err(e) => {
+                if errcount >= 5 {
+                    bail!("Login failed too many times, exiting.");
+                }
+                errcount += 1;
+                info!("Error: {e}. Login failed {} times, retrying.", errcount);
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            }
+        }
+    }
+    info!("Hello {}!", user.handle);
     Ok(())
+}
+
+/// Configures the logger for the application, specifying the log output destination and format.
+///
+/// The `configure_logging` function allows you to set up the logger for your application,
+/// determining whether log messages are printed to the standard output or saved to a log file.
+/// You can specify a log filename to save log messages to a file, or provide an empty string to
+/// log messages to the standard output.
+///
+/// # Arguments
+///
+/// * `log_filename` - A string representing the desired log output destination. If empty, log
+///   messages will be printed to the standard output. If a filename is provided, log messages
+///   will be saved to that file. You can specify a relative or absolute path as well, and the
+///   function will create any necessary directories.
+///
+/// # Examples
+///
+/// To log messages to the standard output:
+///
+/// ```rust
+/// configure_logging(""); // Log to standard output
+/// ```
+///
+/// To log messages to a file named "mylog.txt" in the "logs" directory:
+///
+/// ```rust
+/// configure_logging("mylog.txt"); // Log to "logs/mylog.txt" inside the "logs" directory
+/// ```
+///
+/// To log messages to a file with an absolute path:
+///
+/// ```rust
+/// configure_logging("/var/log/myapp.log"); // Log to "/var/log/myapp.log"
+/// ```
+///
+/// # Note
+///
+/// The function creates the "logs" directory if it doesn't exist when logging to a file.
+/// Be sure to "logs" to your .gitignore file if you don't want to commit the log files.
+///
+/// # Panics
+///
+/// The function will panic if it encounters errors during logger initialization.
+///
+fn configure_logging(log_filename: &str) {
+    let log_level = LevelFilter::Debug;
+
+    // Initialize the logger with the specified log level and console output
+    let mut builder =
+        Builder::from_env(Env::default().default_filter_or(format!("{:?}", log_level)));
+
+    builder.format(|buf, record| {
+        writeln!(
+            buf,
+            "[{}] {} - {}",
+            record.level(),
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+            record.args()
+        )
+    });
+
+    if !log_filename.is_empty() {
+        // Check if the provided log filename contains a path
+        let full_path: String = if Path::new(log_filename).is_relative() {
+            // If it's a relative path, prepend "logs/"
+            format!("logs/{}", log_filename)
+        } else {
+            log_filename.to_string() // Use the provided path as is
+        };
+
+        if full_path.starts_with("logs/") {
+            std::fs::create_dir_all("logs").expect("Can't create logs directory");
+        }
+
+        // If a log filename is provided, configure logging to log to the file
+        let target = Box::new(File::create(full_path).expect("Can't create file"));
+        builder
+            .format(|buf, record| {
+                writeln!(
+                    buf,
+                    "{}:{} {} [{}] - {}",
+                    record.file().unwrap_or("unknown"),
+                    record.line().unwrap_or(0),
+                    chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3f"),
+                    record.level(),
+                    record.args()
+                )
+            })
+            .target(env_logger::Target::Pipe(target))
+            .filter(None, LevelFilter::Info);
+    }
+
+    // Initialize the logger
+    builder.init()
+}
+
+fn credentials_from_env() -> Result<CreateSessionRequest> {
+    let bluesky_username_var: &str = "BLUESKY_USERNAME";
+    let bluesky_password_var: &str = "BLUESKY_PASSWORD";
+
+    let identifier = env::var_os(bluesky_username_var)
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    if identifier.is_empty() {
+        bail!("Could not find the BLUESKY_USERNAME environment variable or it was empty.");
+    }
+
+    let password = env::var_os(bluesky_password_var)
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    if password.is_empty() {
+        bail!("Could not find the BLUESKY_PASSWORD environment variable or it was empty.");
+    }
+
+    Ok(CreateSessionRequest {
+        identifier,
+        password,
+    })
 }

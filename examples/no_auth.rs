@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports)]
 use anyhow::Result;
 use rustysky::agent;
 use rustysky::bsky_agent;
