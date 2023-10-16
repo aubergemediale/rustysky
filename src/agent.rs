@@ -10,16 +10,10 @@ pub fn get_default_configuration() -> BlueskyConfiguration {
 }
 
 pub async fn create_session(
-    login: &CreateSessionRequest,
+    request: &CreateSessionRequest,
     config: &BlueskyConfiguration,
 ) -> Result<CreateSessionResponse> {
     let url = format!("{}/xrpc/com.atproto.server.createSession", config.xrpc_host);
-
-    let request_body = serde_json::to_string(login)?;
-
-    let response_body = crate::xrpc::fetch(url, request_body).await?;
-
-    let user_data: CreateSessionResponse = serde_json::from_str(&response_body)?;
-
+    let user_data: CreateSessionResponse = crate::xrpc::fetch(url, request).await?;
     Ok(user_data)
 }

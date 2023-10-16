@@ -1,9 +1,13 @@
 use anyhow::anyhow;
 use anyhow::Result;
 use log::debug;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
-pub async fn fetch(url: String, body: String) -> Result<String> {
+pub async fn fetch<T: Serialize, R: DeserializeOwned>(url: String, request: T) -> Result<R> {
     let client = reqwest::Client::new();
+
+    let body = serde_json::to_string(&request)?;
 
     let response = client
         .post(url)
@@ -12,17 +16,17 @@ pub async fn fetch(url: String, body: String) -> Result<String> {
         .send()
         .await?;
 
-    // Check if the HTTP response status code is not 200 (successful login)
     if response.status().as_u16() != 200 {
         return Err(anyhow!(
-            "Login failed with status code: {}",
+            "Request failed with status code: {}",
             response.status()
         ));
     }
 
     debug!("Response Headers:\n{:#?}", response.headers());
 
-    let body = response.text().await?.to_string();
+    // Deserialize the response directly
+    let result: R = response.json().await?;
 
-    Ok(body)
+    Ok(result)
 }
