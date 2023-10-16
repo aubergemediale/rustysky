@@ -2,7 +2,9 @@
 
 ![Rust Tests](https://github.com/aubergemediale/rustysky/workflows/Rust/badge.svg) [![stability-wip](https://img.shields.io/badge/stability-wip-lightgrey.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#work-in-progress)
 
-rustysky is a Rust client library for the bluesky social network. Along with the library, this project also provides a CLI tool and examples to help users get started with the bluesky API.
+rustysky is a Rust client library for the Bluesky social network. Along with the library, this project also provides a CLI tool and examples to help users get started with the Bluesky API.
+
+![rustysky](assets/splash.jpg?raw=true "rustysky")
 
 ## Table of Contents
 
