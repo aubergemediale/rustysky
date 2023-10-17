@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub struct BlueskyConfiguration {
     pub request_content_type: String,
     pub xrpc_host: String,
+    pub xrpc_connection_pooling: bool,
     pub xrpc_create_session: String,
 }
 

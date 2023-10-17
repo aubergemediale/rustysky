@@ -26,20 +26,23 @@ async fn main() -> anyhow::Result<()> {
     let user: CreateSessionResponse;
     let mut errcount = 0;
     loop {
-        let loginresult = create_session(&create_session_request, &config).await;
-        match loginresult {
-            Ok(u) => {
-                info!("Login successful: {:#?}", u);
-                user = u;
+        match create_session(&create_session_request, &config).await {
+            Ok(response_data) => {
+                info!("Login successful: {:#?}", response_data);
+                user = response_data;
                 break;
             }
-            Err(e) => {
+            Err((Some(code), message)) => {
                 if errcount >= 5 {
                     bail!("Login failed too many times, exiting.");
                 }
+                info!("HTTP error with code {}: {}", code, message);
                 errcount += 1;
-                info!("Error: {e}. Login failed {} times, retrying.", errcount);
+                info!("Login failed {} times, retrying.", errcount);
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            }
+            Err((None, message)) => {
+                bail!("Other error: {}", message);
             }
         }
     }
