@@ -47,6 +47,37 @@ async fn main() -> anyhow::Result<()> {
         }
     }
     info!("Hello {}!", user.handle);
+
+    // get the full profile
+    let profile: ProfileViewDetailedResponse;
+    let mut errcount = 0;
+    loop {
+        match get_profile(&user.did, &user.access_jwt, &config).await {
+            Ok(response_data) => {
+                info!("Get Profile successful: {:#?}", response_data);
+                profile = response_data;
+                break;
+            }
+            Err((Some(code), message)) => {
+                if errcount >= 5 {
+                    bail!("Get Profile failed too many times, exiting.");
+                }
+                info!("HTTP error with code {}: {}", code, message);
+                errcount += 1;
+                info!("Get Profile failed {} times, retrying.", errcount);
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            }
+            Err((None, message)) => {
+                bail!("Other error: {}", message);
+            }
+        }
+    }
+    info!(
+        "Congrats {}, you already have {} followers!",
+        profile.display_name.unwrap_or(user.handle),
+        profile.followers_count.unwrap_or(0)
+    );
+
     Ok(())
 }
 

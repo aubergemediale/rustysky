@@ -112,3 +112,37 @@ pub async fn fetch<T: Serialize, R: DeserializeOwned>(
         Err(err) => Err((None, format!("Deserialization error: {}", err))),
     }
 }
+
+pub async fn get<T: DeserializeOwned>(
+    url: &str,
+    auth: &str,
+    use_connection_pooling: bool,
+) -> Result<T, (Option<u16>, String)> {
+    let client = if use_connection_pooling {
+        get_client().clone() // Clone the reference to the global client (not the instance)
+    } else {
+        Client::new()
+    };
+
+    let response = match client
+        .get(url)
+        .header("Authorization", format!("Bearer {}", auth))
+        .send()
+        .await
+    {
+        Ok(res) => res,
+        Err(err) => return Err((None, format!("Request error: {}", err))),
+    };
+
+    if response.status().as_u16() > 200 {
+        return Err((
+            Some(response.status().as_u16()),
+            format!("HTTP error with status code: {}", response.status()),
+        ));
+    }
+
+    match response.json::<T>().await {
+        Ok(data) => Ok(data),
+        Err(err) => Err((None, format!("Deserialization error: {}", err))),
+    }
+}
