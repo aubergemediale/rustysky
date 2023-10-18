@@ -1,5 +1,5 @@
 mod http_client;
-mod xrpc_session;
+pub mod xrpc_session;
 pub mod xrpc_types;
 pub use http_client::clear_client;
 
@@ -16,9 +16,7 @@ pub async fn create_session(
     config: &BlueskyConfiguration,
 ) -> Result<CreateSessionResponse, (Option<u16>, String)> {
     let url = format!("{}/xrpc/com.atproto.server.createSession", config.xrpc_host);
-    let response: CreateSessionResponse =
-        crate::xrpc::post(url, request, config.xrpc_connection_pooling).await?;
-    Ok(response)
+    crate::xrpc::post(url, request, config.xrpc_connection_pooling).await
 }
 
 pub async fn refresh_session(
@@ -29,21 +27,24 @@ pub async fn refresh_session(
         "{}/xrpc/com.atproto.server.refreshSession",
         config.xrpc_host
     );
-    let response: RefreshSessionResponse =
-        crate::xrpc::post_refresh(url, refresh_jwt, config.xrpc_connection_pooling).await?;
-    Ok(response)
+
+    crate::xrpc::post_refresh(url, refresh_jwt, config.xrpc_connection_pooling).await
 }
 
 pub async fn get_profile(
-    did: &str,
-    auth: &str,
+    session: &mut CreateSessionResponse,
     config: &BlueskyConfiguration,
 ) -> Result<ProfileViewDetailedResponse, (Option<u16>, String)> {
+    if session.session_needs_refresh() {
+        refresh_session(&session.refresh_jwt, config)
+            .await
+            .map(|refreshed_session| session.update_from_refresh(&refreshed_session))?;
+    }
+
     let url = format!(
         "{}/xrpc/app.bsky.actor.getProfile?actor={}",
-        config.xrpc_host, did
+        config.xrpc_host, session.did
     );
-    let response: ProfileViewDetailedResponse =
-        crate::xrpc::get_debug(&url, auth, config.xrpc_connection_pooling).await?;
-    Ok(response)
+
+    crate::xrpc::get_debug(&url, &session.access_jwt, config.xrpc_connection_pooling).await
 }

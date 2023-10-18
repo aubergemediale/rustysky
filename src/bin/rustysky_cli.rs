@@ -4,6 +4,7 @@ use env_logger::{Builder, Env};
 use log::info;
 use log::LevelFilter;
 use rustysky::types::*;
+use rustysky::xrpc::xrpc_session::*;
 use rustysky::xrpc::xrpc_types::*;
 use rustysky::xrpc::*;
 use std::env;
@@ -52,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
     let profile: ProfileViewDetailedResponse;
     errcount = 0;
     loop {
-        match get_profile(&session.did, &session.access_jwt, &config).await {
+        match get_profile(&mut session, &config).await {
             Ok(response_data) => {
                 info!("Get Profile successful: {:#?}", response_data);
                 profile = response_data;
@@ -93,6 +94,7 @@ async fn main() -> anyhow::Result<()> {
             bail!("Other error: {}", message)
         }
     }
+    // create a post
 
     Ok(())
 }
