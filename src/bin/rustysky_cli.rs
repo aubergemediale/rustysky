@@ -1,23 +1,21 @@
-use agent::*;
 use anyhow::bail;
 use anyhow::Result;
 use env_logger::{Builder, Env};
 use log::info;
 use log::LevelFilter;
-use rustysky::agent;
-use rustysky::types;
+use rustysky::types::*;
+use rustysky::xrpc::xrpc_types::*;
+use rustysky::xrpc::*;
 use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use types::*;
-
 const MAX_RETRIES: u32 = 5;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     configure_logging(""); // pass a filename to log to a file, or "" for stdout
-    let config = get_default_configuration();
+    let config: BlueskyConfiguration = get_default_configuration();
 
     let create_session_request = credentials_from_env()?;
     info!(
@@ -80,9 +78,13 @@ async fn main() -> anyhow::Result<()> {
         profile.followers_count.unwrap_or(0)
     );
 
+    // just to test this, I clear teh client
+    clear_client();
+
     match refresh_session(&session.refresh_jwt, &config).await {
         Ok(response_data) => {
             session.update_from_refresh(&response_data);
+            session.print_token_info();
         }
         Err((Some(code), message)) => {
             bail!("HTTP error with code {}: {}", code, message)

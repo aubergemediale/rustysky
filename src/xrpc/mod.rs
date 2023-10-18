@@ -1,13 +1,15 @@
-use crate::types::*;
+mod http_client;
+mod xrpc_session;
+pub mod xrpc_types;
+pub use http_client::clear_client;
+
+use http_client::*;
+use xrpc_session::*;
+use xrpc_types::*;
+
 use anyhow::Result;
 
-pub fn get_default_configuration() -> BlueskyConfiguration {
-    BlueskyConfiguration {
-        request_content_type: "application/json".to_string(),
-        xrpc_host: "https://bsky.social".to_string(),
-        xrpc_connection_pooling: true,
-    }
-}
+use crate::types::BlueskyConfiguration;
 
 pub async fn create_session(
     request: &CreateSessionRequest,

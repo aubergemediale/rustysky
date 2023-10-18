@@ -3,9 +3,8 @@ use log::debug;
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use std::sync::{Mutex, Once};
+use std::sync::Mutex;
 
-static INIT: Once = Once::new();
 static mut CLIENT: Option<Client> = None;
 static CLIENT_LOCK: Mutex<()> = Mutex::new(());
 
@@ -22,10 +21,11 @@ static CLIENT_LOCK: Mutex<()> = Mutex::new(());
 ///
 /// This function uses unsafe code internally to deal with mutable statics.
 pub fn get_client() -> &'static Client {
+    let _guard = CLIENT_LOCK.lock().unwrap();
     unsafe {
-        INIT.call_once(|| {
-            CLIENT = Some(Client::new());
-        });
+        if CLIENT.is_none() {
+            CLIENT = Some(reqwest::Client::new());
+        }
         CLIENT.as_ref().unwrap()
     }
 }
