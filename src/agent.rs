@@ -5,8 +5,6 @@ pub fn get_default_configuration() -> BlueskyConfiguration {
     BlueskyConfiguration {
         request_content_type: "application/json".to_string(),
         xrpc_host: "https://bsky.social".to_string(),
-        xrpc_create_session: "/xrpc/com.atproto.server.createSession".to_string(),
-        xrpc_profile_view_detailed: "/xrpc/app.bsky.actor.getProfile?actor=".to_string(),
         xrpc_connection_pooling: true,
     }
 }
@@ -15,10 +13,23 @@ pub async fn create_session(
     request: &CreateSessionRequest,
     config: &BlueskyConfiguration,
 ) -> Result<CreateSessionResponse, (Option<u16>, String)> {
-    let url = format!("{}{}", config.xrpc_host, config.xrpc_create_session);
-    let user_data: CreateSessionResponse =
-        crate::xrpc::fetch(url, request, config.xrpc_connection_pooling).await?;
-    Ok(user_data)
+    let url = format!("{}/xrpc/com.atproto.server.createSession", config.xrpc_host);
+    let response: CreateSessionResponse =
+        crate::xrpc::post(url, request, config.xrpc_connection_pooling).await?;
+    Ok(response)
+}
+
+pub async fn refresh_session(
+    refresh_jwt: &str,
+    config: &BlueskyConfiguration,
+) -> Result<RefreshSessionResponse, (Option<u16>, String)> {
+    let url = format!(
+        "{}/xrpc/com.atproto.server.refreshSession",
+        config.xrpc_host
+    );
+    let response: RefreshSessionResponse =
+        crate::xrpc::post_refresh(url, refresh_jwt, config.xrpc_connection_pooling).await?;
+    Ok(response)
 }
 
 pub async fn get_profile(
@@ -27,10 +38,10 @@ pub async fn get_profile(
     config: &BlueskyConfiguration,
 ) -> Result<ProfileViewDetailedResponse, (Option<u16>, String)> {
     let url = format!(
-        "{}{}{}",
-        config.xrpc_host, config.xrpc_profile_view_detailed, did
+        "{}/xrpc/app.bsky.actor.getProfile?actor={}",
+        config.xrpc_host, did
     );
-    let profile: ProfileViewDetailedResponse =
-        crate::xrpc::get(&url, auth, config.xrpc_connection_pooling).await?;
-    Ok(profile)
+    let response: ProfileViewDetailedResponse =
+        crate::xrpc::get_debug(&url, auth, config.xrpc_connection_pooling).await?;
+    Ok(response)
 }

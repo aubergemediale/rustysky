@@ -12,6 +12,8 @@ use std::io::Write;
 use std::path::Path;
 use types::*;
 
+const MAX_RETRIES: u32 = 5;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     configure_logging(""); // pass a filename to log to a file, or "" for stdout
@@ -19,21 +21,21 @@ async fn main() -> anyhow::Result<()> {
 
     let create_session_request = credentials_from_env()?;
     info!(
-        "Using Bluesky credentials for {} from BLUESKY_USERNAME, BLUESKY_PASSWORd",
+        "Using Bluesky credentials for {} from BLUESKY_USERNAME, BLUESKY_PASSWORD",
         create_session_request.identifier
     );
 
-    let user: CreateSessionResponse;
+    let mut session: CreateSessionResponse;
     let mut errcount = 0;
     loop {
         match create_session(&create_session_request, &config).await {
             Ok(response_data) => {
                 info!("Login successful: {:#?}", response_data);
-                user = response_data;
+                session = response_data;
                 break;
             }
             Err((Some(code), message)) => {
-                if errcount >= 5 {
+                if errcount >= MAX_RETRIES {
                     bail!("Login failed too many times, exiting.");
                 }
                 info!("HTTP error with code {}: {}", code, message);
@@ -46,20 +48,20 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     }
-    info!("Hello {}!", user.handle);
+    info!("Hello {}!", session.handle);
 
     // get the full profile
     let profile: ProfileViewDetailedResponse;
-    let mut errcount = 0;
+    errcount = 0;
     loop {
-        match get_profile(&user.did, &user.access_jwt, &config).await {
+        match get_profile(&session.did, &session.access_jwt, &config).await {
             Ok(response_data) => {
                 info!("Get Profile successful: {:#?}", response_data);
                 profile = response_data;
                 break;
             }
             Err((Some(code), message)) => {
-                if errcount >= 5 {
+                if errcount >= MAX_RETRIES {
                     bail!("Get Profile failed too many times, exiting.");
                 }
                 info!("HTTP error with code {}: {}", code, message);
@@ -74,9 +76,21 @@ async fn main() -> anyhow::Result<()> {
     }
     info!(
         "Congrats {}, you already have {} followers!",
-        profile.display_name.unwrap_or(user.handle),
+        profile.display_name.as_deref().unwrap_or(&session.handle),
         profile.followers_count.unwrap_or(0)
     );
+
+    match refresh_session(&session.refresh_jwt, &config).await {
+        Ok(response_data) => {
+            session.update_from_refresh(&response_data);
+        }
+        Err((Some(code), message)) => {
+            bail!("HTTP error with code {}: {}", code, message)
+        }
+        Err((None, message)) => {
+            bail!("Other error: {}", message)
+        }
+    }
 
     Ok(())
 }

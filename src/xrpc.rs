@@ -71,7 +71,7 @@ pub fn clear_client() {
 /// - `Ok(R)`: Successful response from the server, where `R` is the deserialized response type.
 /// - `Err((Option<u16>, String))`: An error occurred. The `Option<u16>` indicates the HTTP error code
 ///                                (if applicable), and `String` provides a corresponding error message.
-pub async fn fetch<T: Serialize, R: DeserializeOwned>(
+pub async fn post<T: Serialize, R: DeserializeOwned>(
     url: String,
     request: T,
     use_connection_pooling: bool,
@@ -92,6 +92,44 @@ pub async fn fetch<T: Serialize, R: DeserializeOwned>(
         .header(reqwest::header::CONTENT_TYPE, "application/json")
         .body(body)
         .send()
+        .await
+    {
+        Ok(res) => res,
+        Err(err) => return Err((None, format!("Request error: {}", err))),
+    };
+
+    debug!("Response Headers:\n{:#?}", response.headers());
+
+    if response.status().as_u16() > 200 {
+        return Err((
+            Some(response.status().as_u16()),
+            format!("HTTP error with status code: {}", response.status()),
+        ));
+    }
+
+    match response.json::<R>().await {
+        Ok(res_data) => Ok(res_data),
+        Err(err) => Err((None, format!("Deserialization error: {}", err))),
+    }
+}
+
+pub async fn post_refresh<R: DeserializeOwned>(
+    url: String,
+    refresh_jwt: &str,
+    use_connection_pooling: bool,
+) -> Result<R, (Option<u16>, String)> {
+    // Decide which client to use based on the flag
+    let client = if use_connection_pooling {
+        get_client().clone() // Clone the reference to the global client (not the instance)
+    } else {
+        Client::new()
+    };
+
+    let response = match client
+        .post(url)
+        .header("Authorization", format!("Bearer {}", refresh_jwt))
+        .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .send() // No body
         .await
     {
         Ok(res) => res,
@@ -142,6 +180,50 @@ pub async fn get<T: DeserializeOwned>(
     }
 
     match response.json::<T>().await {
+        Ok(data) => Ok(data),
+        Err(err) => Err((None, format!("Deserialization error: {}", err))),
+    }
+}
+
+pub async fn get_debug<T: DeserializeOwned>(
+    url: &str,
+    auth: &str,
+    use_connection_pooling: bool,
+) -> Result<T, (Option<u16>, String)> {
+    // Decide which client to use based on the flag
+    let client = if use_connection_pooling {
+        get_client().clone() // Clone the reference to the global client (not the instance)
+    } else {
+        Client::new()
+    };
+
+    let response = match client
+        .get(url)
+        .header("Authorization", format!("Bearer {}", auth))
+        .send()
+        .await
+    {
+        Ok(res) => res,
+        Err(err) => return Err((None, format!("Request error: {}", err))),
+    };
+
+    if response.status().as_u16() > 200 {
+        return Err((
+            Some(response.status().as_u16()),
+            format!("HTTP error with status code: {}", response.status()),
+        ));
+    }
+
+    // Get the entire response body as a String to log it
+    let raw_json = match response.text().await {
+        Ok(txt) => txt,
+        Err(err) => return Err((None, format!("Failed to get response text: {}", err))),
+    };
+
+    debug!("Raw JSON Response: {}", raw_json);
+
+    // Deserialize the raw_json
+    match serde_json::from_str::<T>(&raw_json) {
         Ok(data) => Ok(data),
         Err(err) => Err((None, format!("Deserialization error: {}", err))),
     }

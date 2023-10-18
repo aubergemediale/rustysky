@@ -4,11 +4,9 @@ pub struct BlueskyConfiguration {
     pub request_content_type: String,
     pub xrpc_host: String,
     pub xrpc_connection_pooling: bool,
-    pub xrpc_create_session: String,
-    pub xrpc_profile_view_detailed: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct CreateSessionResponse {
     pub did: String,
     pub handle: String,
@@ -21,7 +19,60 @@ pub struct CreateSessionResponse {
     pub refresh_jwt: String,
 }
 
-#[derive(Serialize, Deserialize)]
+impl CreateSessionResponse {
+    pub fn update_from_refresh(&mut self, refresh: &RefreshSessionResponse) {
+        let mut updated = false;
+
+        if self.access_jwt != refresh.access_jwt {
+            log::info!("Session access_jwt updated.");
+            self.access_jwt = refresh.access_jwt.clone();
+            updated = true;
+        }
+
+        if self.refresh_jwt != refresh.refresh_jwt {
+            log::info!("Session refresh_jwt updated.");
+            self.refresh_jwt = refresh.refresh_jwt.clone();
+            updated = true;
+        }
+
+        if self.handle != refresh.handle {
+            log::info!("Session handle updated.");
+            self.handle = refresh.handle.clone();
+            updated = true;
+        }
+
+        if self.did != refresh.did {
+            panic!("Did mismatch between create and refresh session responses");
+        }
+
+        if updated {
+            log::info!("Session successfully refreshed.");
+        } else {
+            log::info!("No updates detected during session refresh.");
+        }
+    }
+}
+
+/*
+export interface OutputSchema {
+  accessJwt: string
+  refreshJwt: string
+  handle: string
+  did: string
+  [k: string]: unknown
+}
+*/
+#[derive(Debug, Deserialize)]
+pub struct RefreshSessionResponse {
+    pub did: String,
+    pub handle: String,
+    #[serde(rename = "accessJwt")]
+    pub access_jwt: String,
+    #[serde(rename = "refreshJwt")]
+    pub refresh_jwt: String,
+}
+
+#[derive(Serialize)]
 pub struct CreateSessionRequest {
     pub identifier: String,
     pub password: String,
