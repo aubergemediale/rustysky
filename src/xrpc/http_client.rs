@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::debug;
+use log::{debug, info};
 use reqwest::Client;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -90,6 +90,50 @@ pub async fn post<T: Serialize, R: DeserializeOwned>(
     let response = match client
         .post(url)
         .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .body(body)
+        .send()
+        .await
+    {
+        Ok(res) => res,
+        Err(err) => return Err((None, format!("Request error: {}", err))),
+    };
+
+    debug!("Response Headers:\n{:#?}", response.headers());
+
+    if response.status().as_u16() > 200 {
+        return Err((
+            Some(response.status().as_u16()),
+            format!("HTTP error with status code: {}", response.status()),
+        ));
+    }
+
+    match response.json::<R>().await {
+        Ok(res_data) => Ok(res_data),
+        Err(err) => Err((None, format!("Deserialization error: {}", err))),
+    }
+}
+
+pub async fn post_auth<T: Serialize, R: DeserializeOwned>(
+    url: String,
+    access_jwt: &str,
+    request: T,
+    use_connection_pooling: bool,
+) -> Result<R, (Option<u16>, String)> {
+    let client = if use_connection_pooling {
+        get_client().clone() // Clone the reference to the global client (not the instance)
+    } else {
+        reqwest::Client::new()
+    };
+
+    let body = match serde_json::to_string(&request) {
+        Ok(b) => b,
+        Err(err) => return Err((None, format!("Serialization error: {}", err))),
+    };
+    info!("{}", body);
+    let response = match client
+        .post(url)
+        .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .header("Authorization", format!("Bearer {}", access_jwt))
         .body(body)
         .send()
         .await

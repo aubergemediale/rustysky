@@ -4,6 +4,8 @@ use env_logger::{Builder, Env};
 use log::info;
 use log::LevelFilter;
 use rustysky::types::*;
+use rustysky::xrpc::xrpc_post::CreatePostRequest;
+use rustysky::xrpc::xrpc_post::Post;
 use rustysky::xrpc::xrpc_session::*;
 use rustysky::xrpc::xrpc_types::*;
 use rustysky::xrpc::*;
@@ -94,8 +96,43 @@ async fn main() -> anyhow::Result<()> {
             bail!("Other error: {}", message)
         }
     }
-    // create a post
+    let text = format!(
+        "Hi @{}, here is a link: https://www.google.com",
+        session.handle,
+    );
+    let post = Post::new(&text, &session.did).unwrap();
+    let did = session.did.clone();
+    let create_post_request = CreatePostRequest::new(&did, post);
+    match create_post(&create_post_request, &mut session, &config).await {
+        Ok(response_data) => {
+            info!("Post created successfully: {}", response_data);
+        }
+        Err((Some(code), message)) => {
+            bail!("HTTP error with code {}: {}", code, message)
+        }
+        Err((None, message)) => {
+            bail!("Other error: {}", message)
+        }
+    }
 
+    /* create a post https://atproto.com/blog/create-post
+       let post = Post::new(
+           "This is a post with a link and a mention. The link is {{LINK}} and the mention is {{MENTION}}. Here is another link and another mention: {{LINK}}, {{MENTION}}",
+           vec!["https://google.com".to_string(), "https://example.com".to_string()],
+           vec![session.did.clone(), profile.did.clone() ]
+       );
+       match create_post(&post, &mut session, &config).await {
+           Ok(response_data) => {
+               info!("Post created successfully: {}", response_data);
+           }
+           Err((Some(code), message)) => {
+               bail!("HTTP error with code {}: {}", code, message)
+           }
+           Err((None, message)) => {
+               bail!("Other error: {}", message)
+           }
+       }
+    */
     Ok(())
 }
 

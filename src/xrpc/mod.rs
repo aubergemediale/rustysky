@@ -1,15 +1,19 @@
 mod http_client;
+pub mod xrpc_post;
 pub mod xrpc_session;
 pub mod xrpc_types;
 pub use http_client::clear_client;
 
 use http_client::*;
+use xrpc_post::*;
 use xrpc_session::*;
 use xrpc_types::*;
 
 use anyhow::Result;
 
 use crate::types::BlueskyConfiguration;
+
+use self::xrpc_post::Post;
 
 pub async fn create_session(
     request: &CreateSessionRequest,
@@ -47,4 +51,20 @@ pub async fn get_profile(
     );
 
     crate::xrpc::get_debug(&url, &session.access_jwt, config.xrpc_connection_pooling).await
+}
+
+pub async fn create_post(
+    post_request: &CreatePostRequest,
+    session: &mut CreateSessionResponse,
+    config: &BlueskyConfiguration,
+) -> Result<String, (Option<u16>, String)> {
+    let url = format!("{}/xrpc/com.atproto.repo.createRecord", config.xrpc_host);
+
+    post_auth(
+        url,
+        &session.access_jwt,
+        post_request,
+        config.xrpc_connection_pooling,
+    )
+    .await
 }
