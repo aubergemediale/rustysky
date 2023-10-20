@@ -4,7 +4,7 @@ mod xrpc_session;
 mod xrpc_types;
 
 pub use http_client::{clear_client, set_http_debug_logging};
-pub use xrpc_post::{CreatePostRequest, Post};
+pub use xrpc_post::{CreatePostRequest, CreatePostResponse, Post, SelfLabel, SelfLabels};
 pub use xrpc_session::{CreateSessionRequest, CreateSessionResponse};
 pub use xrpc_types::ProfileViewDetailedResponse;
 
@@ -58,7 +58,7 @@ pub async fn create_post(
     post_request: &CreatePostRequest,
     session: &mut CreateSessionResponse,
     config: &BlueskyConfiguration,
-) -> Result<String, (Option<u16>, String)> {
+) -> Result<CreatePostResponse, (Option<u16>, String)> {
     let url = create_url(&config.xrpc_host, "com.atproto.repo.createRecord");
     post_auth(
         url,

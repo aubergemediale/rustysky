@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use regex::Regex;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreatePostRequest {
     pub collection: String, // e.g. "app.bsky.feed.post" for posts
@@ -20,6 +21,12 @@ impl CreatePostRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct CreatePostResponse {
+    pub uri: String,
+    pub cid: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Post {
     #[serde(rename = "$type")]
     pub record_type: String,
@@ -30,10 +37,34 @@ pub struct Post {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facets: Option<Vec<Facet>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub langs: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub labels: Option<SelfLabels>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SelfLabels {
+    #[serde(rename = "$type")]
+    pub selflabels_type: String,
+    pub values: Vec<SelfLabel>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SelfLabel {
+    pub val: String,
 }
 
 impl Post {
-    pub fn new(text: &str, debug_did: &str) -> anyhow::Result<Self> {
+    pub fn new(
+        text: &str,
+        debug_did: &str,
+        langs: Option<Vec<String>>,
+        tags: Option<Vec<String>>,
+        labels: Option<SelfLabels>,
+    ) -> anyhow::Result<Self> {
         if text.is_empty() {
             return Err(anyhow::anyhow!("The Post's text cannot be empty"));
         }
@@ -103,6 +134,9 @@ impl Post {
             } else {
                 Some(facets)
             },
+            langs,
+            tags,
+            labels,
         })
     }
 }

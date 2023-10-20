@@ -1,26 +1,17 @@
-use anyhow::bail;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use env_logger::{Builder, Env};
-use log::info;
-use log::LevelFilter;
-use rustysky::types::get_default_configuration;
-use rustysky::types::BlueskyConfiguration;
-use rustysky::xrpc::clear_client;
-use rustysky::xrpc::create_post;
-use rustysky::xrpc::create_session;
-use rustysky::xrpc::get_profile;
-use rustysky::xrpc::refresh_session;
-use rustysky::xrpc::set_http_debug_logging;
-use rustysky::xrpc::CreatePostRequest;
-use rustysky::xrpc::CreateSessionRequest;
-use rustysky::xrpc::CreateSessionResponse;
-use rustysky::xrpc::Post;
-use rustysky::xrpc::ProfileViewDetailedResponse;
+use log::{info, LevelFilter};
+use rustysky::{
+    types::{get_default_configuration, BlueskyConfiguration},
+    xrpc::{
+        clear_client, create_post, create_session, get_profile, refresh_session,
+        set_http_debug_logging, CreatePostRequest, CreateSessionRequest, CreateSessionResponse,
+        Post, ProfileViewDetailedResponse, SelfLabel, SelfLabels,
+    },
+};
 
-use std::env;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
+use std::{env, fs::File, io::Write, path::Path};
+
 const MAX_RETRIES: u32 = 5;
 
 #[tokio::main]
@@ -105,16 +96,32 @@ async fn main() -> anyhow::Result<()> {
             bail!("Other error: {}", message)
         }
     }
+
     let text = format!(
-        "Hi @{}, here is a link: https://www.google.com",
+        "Please ignore! This is just a test post from a Bluesky client written in Rust I am working on. A test-mention: @{}, a test-link: https://www.google.com",
         session.handle,
     );
-    let post = Post::new(&text, &session.did)?;
+
+    let labels = SelfLabels {
+        selflabels_type: "com.atproto.label.defs#selfLabels".to_string(),
+        values: vec![SelfLabel {
+            val: "test_label".to_string(),
+        }],
+    };
+
+    let post = Post::new(
+        &text,
+        &session.did,
+        Some(vec!["en".to_string()]),
+        Some(vec!["test".to_string()]),
+        Some(labels),
+    )?;
+
     let did = session.did.clone();
     let create_post_request = CreatePostRequest::new(&did, post);
     match create_post(&create_post_request, &mut session, &config).await {
         Ok(response_data) => {
-            info!("Post created successfully: {}", response_data);
+            info!("Post created successfully: {:#?}", response_data);
         }
         Err((Some(code), message)) => {
             bail!("HTTP error with code {}: {}", code, message)
@@ -124,24 +131,6 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    /* create a post https://atproto.com/blog/create-post
-       let post = Post::new(
-           "This is a post with a link and a mention. The link is {{LINK}} and the mention is {{MENTION}}. Here is another link and another mention: {{LINK}}, {{MENTION}}",
-           vec!["https://google.com".to_string(), "https://example.com".to_string()],
-           vec![session.did.clone(), profile.did.clone() ]
-       );
-       match create_post(&post, &mut session, &config).await {
-           Ok(response_data) => {
-               info!("Post created successfully: {}", response_data);
-           }
-           Err((Some(code), message)) => {
-               bail!("HTTP error with code {}: {}", code, message)
-           }
-           Err((None, message)) => {
-               bail!("Other error: {}", message)
-           }
-       }
-    */
     Ok(())
 }
 
