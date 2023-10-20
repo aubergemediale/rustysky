@@ -3,12 +3,20 @@ use anyhow::Result;
 use env_logger::{Builder, Env};
 use log::info;
 use log::LevelFilter;
-use rustysky::types::*;
-use rustysky::xrpc::xrpc_post::CreatePostRequest;
-use rustysky::xrpc::xrpc_post::Post;
-use rustysky::xrpc::xrpc_session::*;
-use rustysky::xrpc::xrpc_types::*;
-use rustysky::xrpc::*;
+use rustysky::types::get_default_configuration;
+use rustysky::types::BlueskyConfiguration;
+use rustysky::xrpc::clear_client;
+use rustysky::xrpc::create_post;
+use rustysky::xrpc::create_session;
+use rustysky::xrpc::get_profile;
+use rustysky::xrpc::refresh_session;
+use rustysky::xrpc::set_http_debug_logging;
+use rustysky::xrpc::CreatePostRequest;
+use rustysky::xrpc::CreateSessionRequest;
+use rustysky::xrpc::CreateSessionResponse;
+use rustysky::xrpc::Post;
+use rustysky::xrpc::ProfileViewDetailedResponse;
+
 use std::env;
 use std::fs::File;
 use std::io::Write;
@@ -17,6 +25,7 @@ const MAX_RETRIES: u32 = 5;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    set_http_debug_logging(true);
     configure_logging(""); // pass a filename to log to a file, or "" for stdout
     let config: BlueskyConfiguration = get_default_configuration();
 
@@ -100,7 +109,7 @@ async fn main() -> anyhow::Result<()> {
         "Hi @{}, here is a link: https://www.google.com",
         session.handle,
     );
-    let post = Post::new(&text, &session.did).unwrap();
+    let post = Post::new(&text, &session.did)?;
     let did = session.did.clone();
     let create_post_request = CreatePostRequest::new(&did, post);
     match create_post(&create_post_request, &mut session, &config).await {

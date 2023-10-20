@@ -133,10 +133,11 @@ pub fn base64url_decode(input: &str) -> Result<Vec<u8>, &'static str> {
     let mut s = input.replace('-', "+").replace('_', "/");
     match s.len() % 4 {
         2 => s.push_str("=="),
-        3 => s.push_str("="),
+        3 => s.push('='),
         0 => {}
         _ => return Err("Invalid base64 length"),
     }
+    #[allow(deprecated)]
     base64::decode(&s).map_err(|_| "Invalid base64")
 }
 

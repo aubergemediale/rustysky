@@ -1,38 +1,39 @@
 mod http_client;
-pub mod xrpc_post;
-pub mod xrpc_session;
-pub mod xrpc_types;
-pub use http_client::clear_client;
+mod xrpc_post;
+mod xrpc_session;
+mod xrpc_types;
 
-use http_client::*;
-use xrpc_post::*;
-use xrpc_session::*;
-use xrpc_types::*;
+pub use http_client::{clear_client, set_http_debug_logging};
+pub use xrpc_post::{CreatePostRequest, Post};
+pub use xrpc_session::{CreateSessionRequest, CreateSessionResponse};
+pub use xrpc_types::ProfileViewDetailedResponse;
 
-use anyhow::Result;
+use http_client::{get, post, post_auth, post_refresh};
+use xrpc_session::RefreshSessionResponse;
 
 use crate::types::BlueskyConfiguration;
+use anyhow::Result;
 
-use self::xrpc_post::Post;
+const XRPC_ENDPOINT: &str = "/xrpc/";
+
+fn create_url(host: &str, endpoint: &str) -> String {
+    format!("{}{}{}", host, XRPC_ENDPOINT, endpoint)
+}
 
 pub async fn create_session(
     request: &CreateSessionRequest,
     config: &BlueskyConfiguration,
 ) -> Result<CreateSessionResponse, (Option<u16>, String)> {
-    let url = format!("{}/xrpc/com.atproto.server.createSession", config.xrpc_host);
-    crate::xrpc::post(url, request, config.xrpc_connection_pooling).await
+    let url = create_url(&config.xrpc_host, "com.atproto.server.createSession");
+    post(url, request, config.xrpc_connection_pooling).await
 }
 
 pub async fn refresh_session(
     refresh_jwt: &str,
     config: &BlueskyConfiguration,
 ) -> Result<RefreshSessionResponse, (Option<u16>, String)> {
-    let url = format!(
-        "{}/xrpc/com.atproto.server.refreshSession",
-        config.xrpc_host
-    );
-
-    crate::xrpc::post_refresh(url, refresh_jwt, config.xrpc_connection_pooling).await
+    let url = create_url(&config.xrpc_host, "com.atproto.server.refreshSession");
+    post_refresh(url, refresh_jwt, config.xrpc_connection_pooling).await
 }
 
 pub async fn get_profile(
@@ -46,11 +47,11 @@ pub async fn get_profile(
     }
 
     let url = format!(
-        "{}/xrpc/app.bsky.actor.getProfile?actor={}",
-        config.xrpc_host, session.did
+        "{}{}app.bsky.actor.getProfile?actor={}",
+        config.xrpc_host, XRPC_ENDPOINT, session.did
     );
 
-    crate::xrpc::get_debug(&url, &session.access_jwt, config.xrpc_connection_pooling).await
+    get(&url, &session.access_jwt, config.xrpc_connection_pooling).await
 }
 
 pub async fn create_post(
@@ -58,8 +59,7 @@ pub async fn create_post(
     session: &mut CreateSessionResponse,
     config: &BlueskyConfiguration,
 ) -> Result<String, (Option<u16>, String)> {
-    let url = format!("{}/xrpc/com.atproto.repo.createRecord", config.xrpc_host);
-
+    let url = create_url(&config.xrpc_host, "com.atproto.repo.createRecord");
     post_auth(
         url,
         &session.access_jwt,

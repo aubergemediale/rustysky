@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 use regex::Regex;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
-use std::fmt::Write;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreatePostRequest {
     pub collection: String, // e.g. "app.bsky.feed.post" for posts
@@ -200,6 +199,7 @@ fn parse_urls(text: &str) -> Vec<URLSpan> {
 struct MentionSpan {
     start: usize,
     end: usize,
+    #[allow(dead_code)]
     handle: String,
 }
 
