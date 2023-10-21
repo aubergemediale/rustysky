@@ -75,6 +75,7 @@ impl Post {
         // Extract mentions and URLs
         let mentions = parse_mentions(text);
         let urls = parse_urls(text);
+        let hashtags = parse_hashtags(text);
 
         if !mentions.is_empty() {
             let mention_features: Vec<Feature> = mentions
@@ -111,6 +112,30 @@ impl Post {
                     features: vec![LinkFeature {
                         feature_type: "app.bsky.richtext.facet#link".to_string(),
                         uri: span.url,
+                    }],
+                })
+                .collect();
+
+            facets.push(Facet {
+                index: FacetIndex {
+                    byteStart: 0,
+                    byteEnd: text.len(),
+                },
+                features: url_features,
+            });
+        }
+
+        if !hashtags.is_empty() {
+            let url_features: Vec<Feature> = hashtags
+                .into_iter()
+                .map(|span| Feature::Hashtag {
+                    index: FacetIndex {
+                        byteStart: span.start,
+                        byteEnd: span.end,
+                    },
+                    features: vec![HashtagFeature {
+                        feature_type: "app.bsky.richtext.facet#tag".to_string(),
+                        tag: span.tag,
                     }],
                 })
                 .collect();
@@ -162,6 +187,10 @@ impl Serialize for Facet {
                 s.serialize_field("index", index)?;
                 s.serialize_field("features", features)?;
             }
+            Feature::Hashtag { index, features } => {
+                s.serialize_field("index", index)?;
+                s.serialize_field("features", features)?;
+            }
         }
         s.end()
     }
@@ -177,6 +206,10 @@ pub enum Feature {
         index: FacetIndex,
         features: Vec<MentionFeature>,
     },
+    Hashtag {
+        index: FacetIndex,
+        features: Vec<HashtagFeature>,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -190,6 +223,12 @@ pub struct MentionFeature {
     #[serde(rename = "$type")]
     feature_type: String,
     did: String,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct HashtagFeature {
+    #[serde(rename = "$type")]
+    feature_type: String,
+    tag: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -212,6 +251,20 @@ fn parse_mentions(text: &str) -> Vec<MentionSpan> {
             start: cap.get(1).unwrap().start(),
             end: cap.get(1).unwrap().end(),
             handle: cap.get(1).unwrap().as_str().chars().skip(1).collect(),
+        })
+        .collect()
+}
+
+fn parse_hashtags(text: &str) -> Vec<HashTagSpan> {
+    let tag_regex = r"\B#([a-zA-Z\p{M}][a-zA-Z0-9\p{M}_]{0,59})";
+
+    let re = Regex::new(tag_regex).unwrap();
+
+    re.captures_iter(text)
+        .map(|cap| HashTagSpan {
+            start: cap.get(1).unwrap().start(),
+            end: cap.get(1).unwrap().end(),
+            tag: cap.get(1).unwrap().as_str().to_string(),
         })
         .collect()
 }
@@ -242,4 +295,11 @@ struct URLSpan {
     start: usize,
     end: usize,
     url: String,
+}
+
+#[derive(Debug, Clone)]
+struct HashTagSpan {
+    start: usize,
+    end: usize,
+    tag: String,
 }

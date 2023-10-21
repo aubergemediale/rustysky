@@ -98,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let text = format!(
-        "Please ignore! This is just a test post from a Bluesky client written in Rust I am working on. A test-mention: @{}, a test-link: https://www.google.com",
+        "Please ignore! This is just a test post from a Bluesky client written in #Rust I am working on. A test-mention: @{}, a test-link: https://www.google.com",
         session.handle,
     );
 
