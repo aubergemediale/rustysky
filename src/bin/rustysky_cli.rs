@@ -6,7 +6,7 @@ use rustysky::{
     xrpc::{
         clear_client, create_post, create_session, get_profile, refresh_session,
         set_http_debug_logging, CreatePostRequest, CreateSessionRequest, CreateSessionResponse,
-        Post, ProfileViewDetailedResponse, SelfLabel, SelfLabels,
+        Post, ProfileViewDetailedResponse, ReplyRef, SelfLabel, SelfLabels, StrongRef,
     },
 };
 
@@ -98,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let text = format!(
-        "Please ignore! This is just a test post from a Bluesky client written in #Rust I am working on. A test-mention: @{}, a test-link: https://www.google.com",
+        "Please ignore! This is just a test post from a Bluesky client written in #Rust I am working on. A test-mention: @{}, a test-link: https://www.google.com. #Hashtags are supported as well (but not yet used by the Bluesky client).",
         session.handle,
     );
 
@@ -112,16 +112,46 @@ async fn main() -> anyhow::Result<()> {
     let post = Post::new(
         &text,
         &session.did,
+        None,
         Some(vec!["en".to_string()]),
         Some(vec!["test".to_string()]),
         Some(labels),
     )?;
+
+    let parent: StrongRef;
 
     let did = session.did.clone();
     let create_post_request = CreatePostRequest::new(&did, post);
     match create_post(&create_post_request, &mut session, &config).await {
         Ok(response_data) => {
             info!("Post created successfully: {:#?}", response_data);
+            parent = response_data;
+        }
+        Err((Some(code), message)) => {
+            bail!("HTTP error with code {}: {}", code, message)
+        }
+        Err((None, message)) => {
+            bail!("Other error: {}", message)
+        }
+    }
+
+    let reply = ReplyRef {
+        root: parent.clone(),
+        parent: parent.clone(),
+    };
+
+    let replypost = Post::new(
+        "This is a reply",
+        &session.did,
+        Some(reply),
+        None,
+        None,
+        None,
+    )?;
+    let reply_post_request = CreatePostRequest::new(&did.clone(), replypost);
+    match create_post(&reply_post_request, &mut session, &config).await {
+        Ok(response_data) => {
+            info!("Post reply created successfully: {:#?}", response_data);
         }
         Err((Some(code), message)) => {
             bail!("HTTP error with code {}: {}", code, message)

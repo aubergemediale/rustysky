@@ -20,8 +20,8 @@ impl CreatePostRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CreatePostResponse {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct StrongRef {
     pub uri: String,
     pub cid: String,
 }
@@ -38,11 +38,19 @@ pub struct Post {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facets: Option<Vec<Facet>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub reply: Option<ReplyRef>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub langs: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub labels: Option<SelfLabels>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReplyRef {
+    pub root: StrongRef,
+    pub parent: StrongRef,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,6 +69,7 @@ impl Post {
     pub fn new(
         text: &str,
         debug_did: &str,
+        reply: Option<ReplyRef>,
         langs: Option<Vec<String>>,
         tags: Option<Vec<String>>,
         labels: Option<SelfLabels>,
@@ -159,6 +168,7 @@ impl Post {
             } else {
                 Some(facets)
             },
+            reply,
             langs,
             tags,
             labels,
